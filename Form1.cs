@@ -27,8 +27,8 @@ namespace A10B
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            OsveziListuPecarosa();
             PopuniComboGradova();
+            OsveziListuPecarosa();
         }
         private void OsveziListuPecarosa()
         {
@@ -64,17 +64,75 @@ namespace A10B
         }
         private void PopuniComboGradova()
         {
+            DataTable dtGrad = new DataTable();
+            string upit = "SELECT GradID, Grad FROM Grad";
+            SqlCommand cmd = new SqlCommand(upit, konekcija);
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            try
+            {
+                da.Fill(dtGrad);
+                comboBoxGrad.DataSource = dtGrad;
+                comboBoxGrad.DisplayMember = "Grad";
+                comboBoxGrad.ValueMember = "GradID";
+                comboBoxGrad.SelectedIndex = -1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Greska: " + ex.Message);
+            }
+            finally
+            {
+                konekcija.Close();
+            }
 
         }
 
         private void toolStripButtonIzmena_Click(object sender, EventArgs e)
         {
-
+            if (textBoxIme.Text == "" || textBoxPrezime.Text == "" 
+                || textBoxAdresa.Text == "" || textBoxTelefon.Text == "")
+            {
+                MessageBox.Show("Morate uneti sve podatke!");
+                return;
+            }
+            if (textBoxSifra.Text == "")
+            {
+                MessageBox.Show("Morate izabrati red koji zelite da izmenite!");
+                return;
+            }
+            try
+            {
+                konekcija.Open();
+                string sqlIzmena = "UPDATE Pecaros " +
+                    "SET Ime = @Ime, Prezime = @Prezime, Adresa = @Adresa, GradID = @Grad, Telefon = @Telefon " +
+                    "WHERE PecarosID = @PecarosID";
+                SqlCommand komandaIzmena = new SqlCommand(sqlIzmena, konekcija);
+                komandaIzmena.Parameters.AddWithValue("@PecarosID", Convert.ToInt32(textBoxSifra.Text));
+                komandaIzmena.Parameters.AddWithValue("@Ime", textBoxIme.Text);
+                komandaIzmena.Parameters.AddWithValue("@Prezime", textBoxPrezime.Text);
+                komandaIzmena.Parameters.AddWithValue("@Adresa", textBoxAdresa.Text);
+                komandaIzmena.Parameters.AddWithValue("@Grad", comboBoxGrad.SelectedValue);
+                komandaIzmena.Parameters.AddWithValue("@Telefon", textBoxTelefon.Text);
+                komandaIzmena.ExecuteNonQuery();
+                int sel = listBox1.SelectedIndex;
+                OsveziListuPecarosa();
+                listBox1.SelectedIndex = sel;
+                MessageBox.Show("Podaci su uspesno izmenjeni!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Izmena nija uspela:" + ex.Message);
+            }
+            finally
+            {
+                konekcija.Close();
+            }
         }
 
         private void toolStripButtonAnaliza_Click(object sender, EventArgs e)
         {
-
+            FormUlov formUlov = new FormUlov();
+            formUlov.ShowDialog();
         }
 
         private void toolStripButtonIzlaz_Click(object sender, EventArgs e)
@@ -90,15 +148,17 @@ namespace A10B
             else
             {
                 DataRow dr = dt.Rows[selInd];
+                textBoxSifra.Text = dr[0].ToString();
                 textBoxIme.Text = dr[1].ToString();
                 textBoxPrezime.Text = dr[2].ToString();
                 textBoxAdresa.Text = dr[3].ToString();
                 textBoxTelefon.Text = dr[5].ToString();
-                comboBoxGrad.SelectedValue = dr[4].ToString();
+                comboBoxGrad.Text = dr[4].ToString();
             }
         }
         private void OcistiKontrole()
         {
+            textBoxSifra.Text = "";
             textBoxIme.Text = "";
             textBoxPrezime.Text = "";
             textBoxAdresa.Text = "";
